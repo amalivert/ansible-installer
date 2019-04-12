@@ -41,13 +41,13 @@ options:
         required: false
         description:
             - This option will enforce an update of the HTTPS certificates (default: false).
-   
+
     certs_update_server_ca:
         required: false
         description:
-            - This option will enforce an update of the CA used for HTTPS certificates. (default: false).  
+            - This option will enforce an update of the CA used for HTTPS certificates. (default: false).
 
-    certs_server_cert: 
+    certs_server_cert:
         required: false
         description:
             - Path to the ssl certificate for https
@@ -70,87 +70,87 @@ options:
     foreman_admin_username:
         required: false
         description:
-            - Username for the initial admin user 
+            - Username for the initial admin user
 
-    foreman_admin_password:  
+    foreman_admin_password:
         required: false
         description:
-            - Password of the initial admin user, default is randomly generated 
+            - Password of the initial admin user, default is randomly generated
 
     foreman_initial_location:
         required: false
         description:
-            - Name of an initial location 
+            - Name of an initial location
 
     foreman_initial_organization:
         required: false
         description:
-            - Name of an initial organization 
-    
+            - Name of an initial organization
+
     foreman_proxy_dhcp:
         required: false
         description:
-            - Enable DHCP feature 
-    
+            - Enable DHCP feature
+
     foreman_proxy_dhcp_interface:
         required: false
         description:
-            - DHCP listen interface   
+            - DHCP listen interface
 
     foreman_proxy_dhcp_gateway:
         required: false
         description:
-            - DHCP pool gateway 
+            - DHCP pool gateway
 
     foreman_proxy_dhcp_range:
         required: false
-        description:       
-            - Space_separated DHCP pool range 
+        description:
+            - Space_separated DHCP pool range
 
     foreman_proxy_dhcp_nameservers:
         required: false
-        description:       
-            - DHCP nameservers, comma_separated 
-   
+        description:
+            - DHCP nameservers, comma_separated
+
     foreman_proxy_tftp:
         required: false
-        description:       
-            - Enable TFTP feature 
+        description:
+            - Enable TFTP feature
 
     foreman_proxy_tftp_servername:
         required: false
         description:
-            - Defines the TFTP Servername to use, overrides the name in the subnet declaration 
+            - Defines the TFTP Servername to use, overrides the name in the subnet declaration
 
     foreman_proxy_dns:
         required: false
         description:
-            -  Enable DNS feature 
+            -  Enable DNS feature
 
     foreman_proxy_dns_interface:
         required: false
          description:
-            - DNS interface 
+            - DNS interface
 
     foreman_proxy_dns_zone:
         required: false
          description:
-            - DNS zone name 
+            - DNS zone name
 
     foreman_proxy_dns_forwarders:
         required: false
          description:
-            - DNS forwarders 
+            - DNS forwarders
 
     foreman_proxy_dns_reverse:
         required: false
          description:
-            - DNS reverse zone name 
+            - DNS reverse zone name
 
     foreman_proxy_content_parent_fqdn:
         required: false
          description:
-            - FQDN of the parent node. 
+            - FQDN of the parent node.
 
     foreman_proxy_register_in_foreman:
         required: false
@@ -165,7 +165,7 @@ options:
     foreman_proxy_trusted_hosts:
         required: false
          description:
-            - Only hosts listed will be permitted, empty array to disable authorization 
+            - Only hosts listed will be permitted, empty array to disable authorization
 
     foreman_proxy_oauth_consumer_key:
         required: false
@@ -187,7 +187,7 @@ EXAMPLES = '''
     foreman_initial_organization: "RedHat"
     foreman_initial_location: "Tysons"
 
-# Run Satellite 6.3 initial installation with DNS,DHCP and TFTP enabled
+# Run Satellite 6.3 and 6.4 initial installation with DNS,DHCP and TFTP enabled
 - satellite_installer:
     scenario: satellite
     foreman_admin_username: "admin"
@@ -207,15 +207,15 @@ EXAMPLES = '''
     foreman_proxy_tftp: true
     foreman_proxy_tftp_servername: "{{ ansible_fqdn }}"
 
-# Update Satellite 6.3 self_signed certificate with an external CA signed certificate
+# Update Satellite 6.3 and 6.4 self_signed certificate with an external CA signed certificate
  - satellite_installer:
     scenario: satellite
     certs_server_cert: "/root/sat_cert/satellite-cert.pem"
     certs_server_cert_req: "/root/sat_cert/satellite-cert-csr.pem"
-    certs_server_key:" /root/sat_cert/satellite-cert-key.pem"
+    certs_server_key: "/root/sat_cert/satellite-cert-key.pem"
     certs_server_ca_cert: "/root/sat_cert/ca-cert-bundle.pem"
-    certs_update_server: True 
-    certs_update_server_ca: True  
+    certs_update_server: "true"
+    certs_update_server_ca: "true"
 '''
 import os
 import platform
@@ -233,67 +233,91 @@ class SatelliteInstaller(object):
         return load_platform_subclass(SatelliteInstaller, args, kwargs)
 
     def __init__(self, module):
-        self.module                            = module
-        self.scenario                          = module.params['scenario']
-        self.name                              = module.params['name']
-        self.certs_update_server               = module.params['certs_update_server']
-        self.certs_update_server_ca            = module.params['certs_update_server_ca']
-        self.certs_server_cert                 = module.params['certs_server_cert']
-        self.certs_server_cert_req             = module.params['certs_server_cert_req']
-        self.certs_server_key                  = module.params['certs_server_key']
-        self.certs_server_ca_cert              = module.params['certs_server_ca_cert']
-        self.foreman_admin_username            = module.params['foreman_admin_username']
-        self.foreman_admin_password            = module.params['foreman_admin_password']
-        self.foreman_initial_location          = module.params['foreman_initial_location']
-        self.foreman_initial_organization      = module.params['foreman_initial_organization']
-        self.foreman_proxy_dhcp                = module.params['foreman_proxy_dhcp']
-        self.foreman_proxy_dhcp_interface      = module.params['foreman_proxy_dhcp_interface']
-        self.foreman_proxy_dhcp_gateway        = module.params['foreman_proxy_dhcp_gateway']
-        self.foreman_proxy_dhcp_range          = module.params['foreman_proxy_dhcp_range']
-        self.foreman_proxy_dhcp_nameservers    = module.params['foreman_proxy_dhcp_nameservers']
-        self.foreman_proxy_dns                 = module.params['foreman_proxy_dns']
-        self.foreman_proxy_dns_interface       = module.params['foreman_proxy_dns_interface']
-        self.foreman_proxy_dns_zone            = module.params['foreman_proxy_dns_zone']
-        self.foreman_proxy_dns_forwarders      = module.params['foreman_proxy_dns_forwarders']
-        self.foreman_proxy_dns_reverse         = module.params['foreman_proxy_dns_reverse']
-        self.foreman_proxy_tftp                = module.params['foreman_proxy_tftp']
-        self.foreman_proxy_tftp_servername     = module.params['foreman_proxy_tftp_servername']
-        #self.foreman_proxy_content_parent_fqdn = module.params['foreman_proxy_content_parent_fqdn']
-        #self.foreman_proxy_foreman_base_url    = module.params['foreman_proxy_foreman_base_url']
-        #self.foreman_proxy_register_in_foreman = module.params['foreman_proxy_register_in_foreman']
-        #self.foreman_proxy_trusted_hosts       = module.params['foreman_proxy_trusted_hosts']
-        #foreman_proxy_oauth_consumer_secret    = module.params['foreman_proxy_oauth_consumer_secret']
-        #foreman_proxy_oauth_consumer_key       = module.params['foreman_proxy_oauth_consumer_key']
-
-        if module.params['foreman_proxy_dhcp_range'] is not None:
-            self.foreman_proxy_dhcp_range = ','.join(module.params['foreman_proxy_dhcp_range'])
-
-        if module.params['foreman_proxy_dns_forwarders'] is not None:
-            self.foreman_proxy_dns_forwarders = ','.join(module.params['foreman_proxy_dns_forwarders'])
-        
-        if module.params['foreman_proxy_dhcp_nameservers'] is not None:
-            self.foreman_proxy_dhcp_nameservers = ','.join(module.params['foreman_proxy_dhcp_nameservers'])
-
+        self.module = module
+        self.scenario = module.params['scenario']
+        self.name = module.params['name']
+        self.certs_update_server = module.params['certs_update_server']
+        self.certs_update_server_ca = module.params['certs_update_server_ca']
+        self.certs_server_cert = module.params['certs_server_cert']
+        self.certs_server_cert_req = module.params['certs_server_cert_req']
+        self.certs_server_key = module.params['certs_server_key']
+        self.certs_server_ca_cert = module.params['certs_server_ca_cert']
+        self.katello_proxy_url = module.params['katello_proxy_url']
+        self.katello_proxy_port = module.params['katello_proxy_port']
+        self.katello_proxy_username = module.params['katello_proxy_username']
+        self.katello_proxy_password = module.params['katello_proxy_password']
+        self.foreman_admin_username = module.params['foreman_admin_username']
+        self.foreman_admin_password = module.params['foreman_admin_password']
+        self.foreman_initial_location = module.params['foreman_initial_location']
+        self.foreman_initial_organization = module.params['foreman_initial_organization']
+        self.foreman_proxy_dhcp_managed = module.params['foreman_proxy_dhcp_managed']
+        self.foreman_proxy_dhcp_interface = module.params['foreman_proxy_dhcp_interface']
+        self.foreman_proxy_dhcp_gateway = module.params['foreman_proxy_dhcp_gateway']
+        self.foreman_proxy_dhcp_range = module.params['foreman_proxy_dhcp_range']
+        self.foreman_proxy_dhcp_nameservers = module.params['foreman_proxy_dhcp_nameservers']
+        self.foreman_proxy_tftp = module.params['foreman_proxy_tftp']
+        self.foreman_proxy_tftp_servername = module.params['foreman_proxy_tftp_servername']
+        self.foreman_proxy_dns_managed = module.params['foreman_proxy_dns_managed']
+        self.foreman_proxy_dns_interface = module.params['foreman_proxy_dns_interface']
+        self.foreman_proxy_dns_zone = module.params['foreman_proxy_dns_zone']
+        self.foreman_proxy_dns_forwarders = module.params['foreman_proxy_dns_forwarders']
+        self.foreman_proxy_dns_reverse = module.params['foreman_proxy_dns_reverse']
+        self.foreman_proxy_content_parent_fqdn = module.params['foreman_proxy_content_parent_fqdn']
+        self.foreman_proxy_foreman_base_url = module.params['foreman_proxy_foreman_base_url']
+        self.foreman_proxy_register_in_foreman = module.params['foreman_proxy_register_in_foreman']
+        self.foreman_proxy_trusted_hosts = module.params['foreman_proxy_trusted_hosts']
+        self.foreman_proxy_oauth_consumer_secret = module.params['foreman_proxy_oauth_consumer_secret']
+        self.foreman_proxy_oauth_consumer_key = module.params['foreman_proxy_oauth_consumer_key']
+        self.foreman_proxy_content_certs_tar = module.params['foreman_proxy_content_certs_tar']
+        self.puppet_server_foreman_url = module.params['puppet_server_foreman_url']
         if module.params['scenario'] is None:
             raise TypeError
+        elif (self.scenario == 'capsule'):
+            if (module.params['foreman_proxy_content_parent_fqdn'] is None and
+                module.params['foreman_proxy_foreman_base_url'] is None and
+                module.params['foreman_proxy_register_in_foreman'] is None and
+                module.params['foreman_proxy_trusted_hosts'] is None and
+                module.params['foreman_proxy_oauth_consumer_secret'] is None and
+                module.params['foreman_proxy_oauth_consumer_key'] is None and
+                module.params['foreman_proxy_content_certs_tar'] is None and
+                module.params['puppet_server_foreman_url'] is None):
+                raise TypeError
 
-        if (module.params['certs_server_cert'] is not None and module.params['certs_server_key'] is None and 
-            module.params['certs_server_cert_req'] is None and 
-            module.params['certs_server_ca_cert'] is None):
+        if module.params['katello_proxy_url'] is not None:
+            if module.params['katello_proxy_port'] is None:
+                self.katello_proxy_port = " "
+            if (module.params['katello_proxy_username'] is None and
+                module.params['katello_proxy_password'] is not None):
+                raise TypeError
+
+        if module.params['foreman_proxy_dhcp_managed']:
+            if module.params['foreman_proxy_dhcp_range'] is not None:
+                self.foreman_proxy_dhcp_range = ','.join(module.params['foreman_proxy_dhcp_range'])
+            if module.params['foreman_proxy_dns_forwarders'] is not None:
+                self.foreman_proxy_dns_forwarders = ','.join(module.params['foreman_proxy_dns_forwarders'])
+            if module.params['foreman_proxy_dhcp_nameservers'] is not None:
+                self.foreman_proxy_dhcp_nameservers = ','.join(module.params['foreman_proxy_dhcp_nameservers'])
+
+        if module.params['certs_update_server'] and module.params['certs_update_server_ca']:
+            if (module.params['certs_server_cert']  is None and module.params['certs_server_key'] is None and
+                module.params['certs_server_cert_req'] is None and
+                module.params['certs_server_ca_cert'] is None):
+                raise TypeError
+            if (module.params['certs_server_key'] is not None and module.params['certs_server_cert'] is None and
+                module.params['certs_server_cert_req'] is None and
+                module.params['certs_server_ca_cert'] is None):
+                raise TypeError
+            if (module.params['certs_server_cert_req'] is not None and module.params['certs_server_cert'] is None and
+                module.params['certs_server_key'] is None and module.params['certs_server_ca_cert'] is None):
+                raise TypeError
+
+            if (module.params['certs_server_ca_cert'] is not None and module.params['certs_server_cert'] is None and
+                module.params['certs_server_key'] is None and
+                module.params['certs_server_ca_cert'] is None):
+                raise TypeError
+        elif module.params['certs_update_server'] and  not module.params['certs_update_server_ca']:
             raise TypeError
-
-        if (module.params['certs_server_key'] is not None and module.params['certs_server_cert'] is None and
-            module.params['certs_server_cert_req'] is None and 
-            module.params['certs_server_ca_cert'] is None):
-            raise TypeError
-
-        if (module.params['certs_server_cert_req'] is not None and module.params['certs_server_cert'] is None and 
-            module.params['certs_server_key'] is None and module.params['certs_server_ca_cert'] is None):
-            raise TypeError
-
-        if (module.params['certs_server_ca_cert'] is not None and module.params['certs_server_cert'] is None and 
-            module.params['certs_server_key'] is None and 
-            module.params['certs_server_ca_cert'] is None):
+        elif module.params['certs_update_server_ca'] and  not module.params['certs_update_server']:
             raise TypeError
 
     def execute_command(self, cmd, use_unsafe_shell=False, data=None, obey_checkmode=True):
@@ -314,12 +338,12 @@ class SatelliteInstaller(object):
 
         if self.foreman_admin_username is not None:
             cmd.append('--foreman-admin-username')
-            cmd.append(self.foreman_admin_username )
+            cmd.append(self.foreman_admin_username)
 
         if self.foreman_admin_password is not None:
             cmd.append('--foreman-admin-password')
             cmd.append(self.foreman_admin_password)
-        
+
         if self.foreman_initial_organization is not None:
             cmd.append('--foreman-initial-organization')
             cmd.append(self.foreman_initial_organization)
@@ -344,41 +368,49 @@ class SatelliteInstaller(object):
             cmd.append('--certs-server-ca-cert')
             cmd.append(self.certs_server_ca_cert)
 
-        if self.certs_update_server:
+        if self.certs_update_server is not None:
             cmd.append('--certs-update-server')
             cmd.append('true')
 
-        if self.certs_update_server_ca:
+        if self.certs_update_server_ca is not None:
             cmd.append('--certs-update-server-ca')
-            cmd.append('true')
+            cmd.append(self.certs_update_server_ca)
 
-        if self.foreman_proxy_dhcp:
+        if self.foreman_proxy_dhcp_managed is not None:
             cmd.append('--foreman-proxy-dhcp')
-            cmd.append('true')
+            cmd.append(self.foreman_proxy_dhcp_managed)
 
         if self.foreman_proxy_dhcp_interface is not None:
             cmd.append('--foreman-proxy-dhcp-interface')
-            cmd.append(self.foreman_proxy_dhcp_interface) 
+            cmd.append(self.foreman_proxy_dhcp_interface)
 
         if self.foreman_proxy_dhcp_gateway is not None:
             cmd.append('--foreman-proxy-dhcp-gateway')
-            cmd.append(self.foreman_proxy_dhcp_gateway) 
+            cmd.append(self.foreman_proxy_dhcp_gateway)
 
         if self.foreman_proxy_dhcp_range is not None:
             cmd.append('--foreman-proxy-dhcp-range')
-            cmd.append(self.foreman_proxy_dhcp_range)         
+            cmd.append(self.foreman_proxy_dhcp_range)
 
         if self.foreman_proxy_dhcp_nameservers is not None:
             cmd.append('--foreman-proxy-dhcp-nameservers')
             cmd.append(self.foreman_proxy_dhcp_nameservers)
 
-        if self.foreman_proxy_dns:
-            cmd.append('--foreman-proxy-dns')
-            cmd.append('true') 
+        if self.foreman_proxy_tftp is not None:
+            cmd.append('--foreman-proxy-tftp')
+            cmd.append(self.foreman_proxy_tftp)
+
+        if self.foreman_proxy_tftp_servername is not None:
+            cmd.append('--foreman-proxy-tftp-servername')
+            cmd.append(self.foreman_proxy_tftp_servername)
+
+        if self.foreman_proxy_dns_managed is not None:
+            cmd.append('--foreman-proxy-dns-managed')
+            cmd.append(self.foreman_proxy_dns_managed)
 
         if self.foreman_proxy_dns_interface is not None:
             cmd.append('--foreman-proxy-dns-interface')
-            cmd.append(self.foreman_proxy_dns_interface) 
+            cmd.append(self.foreman_proxy_dns_interface)
 
         if self.foreman_proxy_dns_zone is not None:
             cmd.append('--foreman-proxy-dns-zone')
@@ -390,19 +422,59 @@ class SatelliteInstaller(object):
 
         if self.foreman_proxy_dns_reverse is not None:
             cmd.append('--foreman-proxy-dns-reverse')
-            cmd.append(self.foreman_proxy_dns_reverse) 
+            cmd.append(self.foreman_proxy_dns_reverse)
 
-        if self.foreman_proxy_tftp:
-            cmd.append('--foreman-proxy-tftp')
-            cmd.append('true')
+        if self.foreman_proxy_content_parent_fqdn is not None:
+            cmd.append('--foreman-proxy-content-parent-fqdn')
+            cmd.append(self.foreman_proxy_content_parent_fqdn)
 
-        if self.foreman_proxy_tftp_servername is not None:
-            cmd.append('--foreman-proxy-tftp-servername')
-            cmd.append(self.foreman_proxy_tftp_servername) 
+        if self.foreman_proxy_foreman_base_url is not None:
+            cmd.append('--foreman-proxy-foreman-base-url')
+            cmd.append(self.foreman_proxy_foreman_base_url)
+
+        if self.foreman_proxy_register_in_foreman is not None:
+            cmd.append('--foreman-proxy-register-in-foreman')
+            cmd.append(self.foreman_proxy_register_in_foreman)
+
+        if self.foreman_proxy_trusted_hosts is not None:
+            cmd.append('--foreman-proxy-trusted-hosts')
+            cmd.append(self.foreman_proxy_dns_reverse)
+
+        if self.foreman_proxy_oauth_consumer_secret is not None:
+            cmd.append('--foreman-proxy-oauth-consumer-secret')
+            cmd.append(self.foreman_proxy_oauth_consumer_secret)
+
+        if self.foreman_proxy_oauth_consumer_key is not None:
+            cmd.append('--foreman-proxy-oauth-consumer-key')
+            cmd.append(self.foreman_proxy_oauth_consumer_key)
+
+        if self.foreman_proxy_content_certs_tar is not None:
+            cmd.append('--foreman-proxy-content-certs-tar')
+            cmd.append(self.foreman_proxy_content_certs_tar)
+
+        if self.puppet_server_foreman_url is not None:
+            cmd.append('--puppet-server-foreman-url')
+            cmd.append(self.puppet_server_foreman_url)
+
+        if self.katello_proxy_url is not None:
+            cmd.append('--katello-proxy-url')
+            cmd.append(self.katello_proxy_url)
+
+        if self.katello_proxy_port is not None:
+            cmd.append('--katello-proxy-port')
+            cmd.append(self.katello_proxy_port)
+
+        if self.katello_proxy_username is not None:
+            cmd.append('--katello-proxy-username')
+            cmd.append(self.katello_proxy_username)
+
+        if self.katello_proxy_password is not None:
+            cmd.append('--katello-proxy-password')
+            cmd.append(self.katello_proxy_password)
 
         return self.execute_command(cmd)
 
-    
+
 # ===========================================
 
 def main():
@@ -424,20 +496,32 @@ def main():
             certs_server_key=dict(type='str'),
             certs_server_cert_req=dict(type='str'),
             certs_server_ca_cert=dict(type='str'),
-            certs_update_server=dict(default='no', type='bool'),
-            certs_update_server_ca=dict(default='no', type='bool'),
-            foreman_proxy_dhcp=dict(default='no', type='bool'),
+            certs_update_server=dict(choices=['true', 'false'], type='str'),
+            certs_update_server_ca=dict(choices=['true', 'false'], type='str'),
+            foreman_proxy_dhcp_managed=dict(choices=['true', 'false'], type='str'),
             foreman_proxy_dhcp_interface=dict(type='str'),
             foreman_proxy_dhcp_gateway=dict(type='str'),
             foreman_proxy_dhcp_range=dict(type='list'),
             foreman_proxy_dhcp_nameservers=dict(type='list'),
-            foreman_proxy_dns=dict(type='bool'),
+            foreman_proxy_tftp=dict(choices=['true', 'false'], type='str'),
+            foreman_proxy_tftp_servername=dict(type='str'),
+            foreman_proxy_dns_managed=dict(choices=['true', 'false'], type='str'),
             foreman_proxy_dns_interface=dict(type='str'),
             foreman_proxy_dns_zone=dict(type='str'),
             foreman_proxy_dns_forwarders=dict(type='list'),
             foreman_proxy_dns_reverse=dict(type='str'),
-            foreman_proxy_tftp=dict(type='bool'),
-            foreman_proxy_tftp_servername=dict(type='str'),
+            foreman_proxy_content_parent_fqdn=dict(type='str'),
+            foreman_proxy_foreman_base_url=dict(type='str'),
+            foreman_proxy_register_in_foreman=dict(type='str'),
+            foreman_proxy_trusted_hosts=dict(type='str'),
+            foreman_proxy_oauth_consumer_secret=dict(type='str'),
+            foreman_proxy_oauth_consumer_key=dict(type='str'),
+            foreman_proxy_content_certs_tar=dict(type='str'),
+            puppet_server_foreman_url=dict(type='str'),
+            katello_proxy_url=dict(type='str'),
+            katello_proxy_port=dict(type='str'),
+            katello_proxy_username=dict(type='str'),
+            katello_proxy_password=dict(type='str')
         ),
     )
     satellite_installer = SatelliteInstaller(module)
@@ -456,7 +540,7 @@ def main():
     else:
         result['satellite-installer'] = err.strip()
     (rc, out, err) = satellite_installer.run_installer()
-    
+
 
     module.exit_json(name=satellite_installer.name,
                       rc=rc, msg=out.strip())
